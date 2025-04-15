@@ -1,0 +1,39 @@
+<%- include("head.ejs") %>
+<!-- START MAIN CONTENT AREA -->
+<span class="preheader">Your delivery is on its way!</span>
+
+<tr>
+  <td class="wrapper">
+    <img style="height:20px; margin-top:20px;" src="https://kjvwlfbptuucvdjisomn.supabase.co/storage/v1/object/public/Payup%20Bucket/email-logo.png" alt="logo"/>
+
+    <h2 class="title">Your delivery has started!</h2>
+
+    <div class="content">
+      <p style="margin-bottom: 10px">Hi <%= firstName %> 👋</p>
+      <p>Your order is now on its way. You can track your delivery progress through the link below:</p>
+
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
+        <tbody>
+          <tr>
+            <td align="left">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tbody>
+                  <tr>
+                    <td><a href="<%= trackingUrl %>">Track Delivery</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table> 
+
+      <p class="paragraph">We hope you have a smooth delivery experience! If you have any questions, feel free to contact us.</p>
+
+
+      <p>Best regards,</p>
+      <p>The Seamless Point Team</p>
+    
+    <%- include("footer.ejs") %>
+  </td>
+</tr>

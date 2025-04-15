@@ -1,0 +1,38 @@
+<%- include("head.ejs") %>
+<!-- START MAIN CONTENT AREA -->
+<span class="preheader">There was an issue with your delivery</span>
+
+<tr>
+  <td class="wrapper">
+    <img style="height:20px; margin-top:20px;" src="https://kjvwlfbptuucvdjisomn.supabase.co/storage/v1/object/public/Payup%20Bucket/email-logo.png" alt="logo"/>
+
+    <h2 class="title">Delivery Unsuccessful</h2>
+
+    <div class="content">
+      <p style="margin-bottom: 10px">Hi <%= firstName %> 👋</p>
+      <p>We attempted to deliver your order, but unfortunately, it was not successful. Please contact us to arrange another delivery attempt or for further assistance:</p>
+
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
+        <tbody>
+          <tr>
+            <td align="left">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tbody>
+                  <tr>
+                    <td><a href="<%= supportUrl %>">Contact Support</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table> 
+
+      <p class="paragraph">We apologize for any inconvenience this may have caused and appreciate your patience.</p>
+
+      <p>Best regards,</p>
+      <p>The Seamless Point Team</p>
+    
+    <%- include("footer.ejs") %>
+  </td>
+</tr>
