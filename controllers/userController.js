@@ -46,7 +46,48 @@ module.exports.updateMe = catchAsync(async (req, res, next) => {
   });
   sendSuccessResponseData(res, "user", updatedUser);
 });
+module.exports.updateBankDetails = catchAsync(async (req, res, next) => {
+  const { accountNumber, bankCode } = req.body;
 
+  if (!req.body.accountNumber || !req.body.bankCode)
+    throw new AppError(
+      "Account number, bank code or account name missing: {accountNumber, bankCode}",
+      400
+    );
+
+  // 2) We dont want to update the email and name and other sensitive info
+
+  const response = await fetch(
+    `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+  const bankName = await getBankNameFromCode(bankCode);
+
+  if (!response.ok) throw new AppError(data.message, 400);
+
+  // Extract account name from Paystack response
+  const accountName = data.data?.account_name;
+
+  const bankDetails = {
+    "bankDetails.accountNumber": accountNumber,
+    "bankDetails.accountName": accountName,
+    "bankDetails.bankCode": bankCode,
+    "bankDetails.bankName": bankName,
+  };
+
+  const updatedUser = await User.findByIdAndUpdate(req.user._id, bankDetails, {
+    new: true,
+    runValidators: true,
+  });
+  sendSuccessResponseData(res, "user", updatedUser);
+});
 module.exports.deleteMe = catchAsync(async (req, res) => {
   const user = await User.findByIdAndUpdate(req.user.id, { active: false });
 

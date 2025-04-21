@@ -136,6 +136,31 @@ module.exports.verifyTransaction = catchAsync(async (req, res) => {
   }
 });
 
+// Get banks list
+module.exports.getBanksList = catchAsync(async (req, res) => {
+  try {
+    const response = await fetch(`https://api.paystack.co/bank?currency=NGN`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to load banks");
+
+    // res.json(data.data.map((bank, index) => ({ ...bank, _id: index })));
+    res.json({
+      ...data,
+      data: data.data.map((bank, index) => ({ ...bank, _id: index })),
+    });
+    // res.json(data);
+  } catch (error) {
+    console.error("Failed to load banks:", error.message);
+    res.status(500).json({ error: error.message || "Internal Server Error" });
+  }
+});
+
 // Webhook for Paystack
 module.exports.webhook = catchAsync(async (req, res) => {
   try {

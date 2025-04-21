@@ -43,6 +43,13 @@ router
     userController.deleteMe
   );
 
+router.patch(
+  "/updateBankDetails",
+  authController.authenticate,
+  authController.authorize("user"),
+  userController.updateBankDetails
+);
+
 router.get(
   "/me/delivery",
   authController.authenticate,
