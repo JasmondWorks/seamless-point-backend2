@@ -59,7 +59,7 @@ app.use("/api/v1/users", userRoutes);
 
 app.use("/api/v1/admins", adminRoutes);
 
-app.use("/api/v1/delivery", deliveryRoutes);
+app.use("/api/v1/deliveries", deliveryRoutes);
 
 app.use("/api/v1/drivers", driverRoutes);
 

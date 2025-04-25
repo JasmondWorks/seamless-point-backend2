@@ -166,7 +166,7 @@ module.exports.getAccountDetails = catchAsync(async (req, res) => {
   console.log("Account credentials", accountNumber, bankCode);
   try {
     const response = await fetch(
-      `https://api.paystack.co/bank/resolve?accountNumber=${accountNumber}&bankCode=${bankCode}`,
+      `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
       {
         method: "GET",
         headers: {
