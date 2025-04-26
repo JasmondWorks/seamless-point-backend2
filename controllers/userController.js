@@ -46,6 +46,17 @@ module.exports.updateMe = catchAsync(async (req, res, next) => {
   });
   sendSuccessResponseData(res, "user", updatedUser);
 });
+async function getBankNameFromCode(bankCode) {
+  const res = await fetch("https://api.paystack.co/bank", {
+    headers: {
+      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+    },
+  });
+
+  const json = await res.json();
+  const bank = json.data.find((b) => b.code === bankCode);
+  return bank?.name || null;
+}
 module.exports.updateBankDetails = catchAsync(async (req, res, next) => {
   const { accountNumber, bankCode } = req.body;
 

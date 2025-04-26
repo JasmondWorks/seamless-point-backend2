@@ -44,7 +44,7 @@ router
   );
 
 router.patch(
-  "/updateBankDetails",
+  "/update-bank-details",
   authController.authenticate,
   authController.authorize("user"),
   userController.updateBankDetails
