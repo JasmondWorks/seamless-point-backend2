@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema(
     phoneNumber: {
       type: String,
       unique: true,
-      required: [true, "Please provide your phone number"],
+      // required: [true, "Please provide your phone number"],
       validate: {
         validator: function (v) {
           return phoneNumberRegex.test(v);
@@ -70,6 +70,9 @@ const userSchema = new mongoose.Schema(
       },
       bankName: { type: String },
     },
+    profileImage: {
+      type: String,
+    },
     city: {
       type: String,
     },
@@ -82,7 +85,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, default: "user" },
     password: {
       type: String,
-      required: [true, "Please provide a password"],
+      // required: [true, "Please provide a password"],
       minlength: [8, "Password must be at least 8 characters"],
     },
     confirmPassword: {

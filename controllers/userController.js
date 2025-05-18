@@ -10,7 +10,7 @@ const { sendSuccessResponseData } = require("../utils/helpers");
 module.exports.alistLatestUsers = (req, res, next) => {
   req.query.limit = "5";
   req.query.sort = "-createdAt";
-  req.query.fields = "firstName,lastName,email";
+  // req.query.fields = "firstName,lastName,email";
   // req.query.sort = '-ratingsAverage,price';
   // req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
   next();
@@ -29,7 +29,7 @@ module.exports.getAllUser = catchAsync(async function (req, res) {
   sendSuccessResponseData(res, "users", users, totalUsers);
 });
 
-module.exports.updateMe = catchAsync(async (req, res, next) => {
+module.exports.updateMe = catchAsync(async (req, res) => {
   // 1) Throw error if user Post password data
   if (req.body.password || req.body.passwordConfirm)
     throw new AppError(
@@ -38,12 +38,20 @@ module.exports.updateMe = catchAsync(async (req, res, next) => {
     );
 
   // 2) We dont want to update the email and name and other sensitive info
-  const filteredBody = filterObj(req.body, "dob");
+  const filteredBody = filterObj(
+    req.body,
+    "dob",
+    "lastName",
+    "firstName",
+    "gender",
+    "profileImage"
+  );
 
   const updatedUser = await User.findByIdAndUpdate(req.user._id, filteredBody, {
     new: true,
     runValidators: true,
   });
+  console.log(updatedUser);
   sendSuccessResponseData(res, "user", updatedUser);
 });
 async function getBankNameFromCode(bankCode) {

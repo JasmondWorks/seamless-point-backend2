@@ -31,10 +31,12 @@ process.on("uncaughtException", (err) => {
 // mongoose.set("useFindAndModify", false);
 (async () => {
   try {
+    console.log("Connecting to:", process.env.DATABASE);
+
     await mongoose.connect(process.env.DATABASE);
-    console.log('DB connected');
+    console.log("DB connected");
   } catch (err) {
-    console.log('DB error :::::::', err);
+    console.log("DB error :::::::", err);
     process.exit(1);
   }
 })();

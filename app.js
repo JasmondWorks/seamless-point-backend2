@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+dotenv.config({ path: "./config.env" });
+
 const globalErrorHandler = require("./controllers/errorController");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
@@ -18,8 +20,7 @@ const transactionRoutes = require("./routes/transactionRoutes");
 const shipmentRoutes = require("./routes/shipmentRoutes");
 const trackingRoutes = require("./routes/trackingRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
-
-dotenv.config({ path: "./config.env" });
+const terminalRoutes = require("./routes/terminalRoutes");
 
 const app = express();
 
@@ -68,6 +69,7 @@ app.use("/api/v1/transactions", transactionRoutes);
 app.use("/api/v1/shipment", shipmentRoutes);
 app.use("/api/v1/tracking", trackingRoutes);
 app.use("/api/v1/webhook", webhookRoutes);
+app.use("/api/v1/terminal", terminalRoutes);
 
 app.get("/", (_req, res) => {
   res.send("<h1>Deployment Check</h1>");

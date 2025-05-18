@@ -1,5 +1,6 @@
 const express = require("express");
 const authController = require("../controllers/authController");
+const adminController = require("../controllers/adminController");
 
 const router = express.Router();
 
@@ -25,6 +26,18 @@ router.patch(
   authController.authenticate,
   authController.authorize("admin"),
   authController.updateMyPassword
+);
+router.get(
+  "/me",
+  authController.authenticate,
+  authController.authorize("admin"),
+  adminController.getAdmin
+);
+router.patch(
+  "/me",
+  authController.authenticate,
+  authController.authorize("admin"),
+  adminController.updateMe
 );
 
 module.exports = router;

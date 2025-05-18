@@ -19,7 +19,7 @@ router
   .route("/user")
   .get(
     authController.authenticate,
-    authController.authorize("user"),
+    authController.authorize("user", "admin"),
     deliveryController.getAllUserDelivery
   );
 router

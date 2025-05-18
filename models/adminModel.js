@@ -33,7 +33,11 @@ const adminSchema = new mongoose.Schema(
         message: (props) => `${props.value} is not a valid phone number!`,
       },
     },
-    image: String,
+    dob: {
+      type: Date,
+      // required: [true, "Please provide a DOB"],
+    },
+    profileImage: String,
     role: { type: String, default: "admin" },
     password: {
       type: String,

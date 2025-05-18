@@ -60,6 +60,96 @@ const ParcelItem = new mongoose.Schema({
     },
   },
 });
+const senderSchema = new mongoose.Schema({
+  firstName: {
+    type: String,
+    required: true,
+  },
+  lastName: {
+    type: String,
+    required: true,
+  },
+  street: {
+    type: String,
+    required: true,
+  },
+  aptUnit: {
+    type: String,
+  },
+  country: {
+    type: String,
+    required: true,
+  },
+  state: {
+    type: String,
+    required: true,
+  },
+  city: {
+    type: String,
+    required: true,
+  },
+  postCode: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+  },
+  phoneNumber: {
+    type: String,
+    required: true,
+  },
+});
+const receiverSchema = new mongoose.Schema({
+  toFirstName: {
+    type: String,
+    required: true,
+  },
+  toLastName: {
+    type: String,
+    required: true,
+  },
+  toStreet: {
+    type: String,
+    required: true,
+  },
+  toAptUnit: {
+    type: String,
+  },
+  toCountry: {
+    type: String,
+    required: true,
+  },
+  toState: {
+    type: String,
+    required: true,
+  },
+  toCity: {
+    type: String,
+    required: true,
+  },
+  toPostCode: {
+    type: String,
+    required: true,
+  },
+  toEmail: {
+    type: String,
+    required: true,
+  },
+  toPhoneNumber: {
+    type: String,
+    required: true,
+  },
+});
+const courierSchema = new mongoose.Schema({
+  courierName: { type: String, required: true },
+  courierLogo: { type: String, required: true },
+  rateId: { type: String, required: true },
+  shipmentId: { type: String, required: true },
+  trackingUrl: { type: String, required: true },
+  amount: { type: Number, required: true },
+});
 const deliverySchema = new mongoose.Schema(
   {
     trackingId: {
@@ -73,85 +163,13 @@ const deliverySchema = new mongoose.Schema(
       required: true,
     },
 
-    // Sender's information
-    firstName: {
-      type: String,
-      required: true,
-    },
-    lastName: {
-      type: String,
-      required: true,
-    },
-    street: {
-      type: String,
-      required: true,
-    },
-    aptUnit: {
-      type: String,
-    },
-    country: {
-      type: String,
-      required: true,
-    },
-    state: {
-      type: String,
-      required: true,
-    },
-    city: {
-      type: String,
-      required: true,
-    },
-    postCode: {
-      type: String,
-      required: true,
-    },
-    email: {
-      type: String,
-      required: true,
-    },
-    phoneNumber: {
-      type: String,
+    sender: {
+      type: senderSchema,
       required: true,
     },
 
-    // Receiver's information
-    toFirstName: {
-      type: String,
-      required: true,
-    },
-    toLastName: {
-      type: String,
-      required: true,
-    },
-    toStreet: {
-      type: String,
-      required: true,
-    },
-    toAptUnit: {
-      type: String,
-    },
-    toCountry: {
-      type: String,
-      required: true,
-    },
-    toState: {
-      type: String,
-      required: true,
-    },
-    toCity: {
-      type: String,
-      required: true,
-    },
-    toPostCode: {
-      type: String,
-      required: true,
-    },
-    toEmail: {
-      type: String,
-      required: true,
-    },
-    toPhoneNumber: {
-      type: String,
+    receiver: {
+      type: receiverSchema,
       required: true,
     },
 
@@ -179,6 +197,10 @@ const deliverySchema = new mongoose.Schema(
       required: true,
     },
 
+    courierDetails: {
+      type: courierSchema,
+      required: true,
+    },
     // Delivery information
     courier: {
       type: String,
