@@ -148,7 +148,33 @@ const courierSchema = new mongoose.Schema({
   rateId: { type: String, required: true },
   shipmentId: { type: String, required: true },
   trackingUrl: { type: String, required: true },
+  trackingNumber: { type: String, required: true },
+  reference: { type: String },
   amount: { type: Number, required: true },
+});
+const parcelSchema = new mongoose.Schema({
+  packagingType: {
+    type: String,
+    enum: ["box", "bag", "envelope", "other"],
+    required: true,
+  },
+  currency: {
+    type: String,
+    enum: ["USD", "NGN", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"],
+    required: true,
+  },
+  proofOfPurchaseImage: {
+    type: String,
+    required: true,
+  },
+  packageImage: {
+    type: String,
+    required: true,
+  },
+  parcelItems: {
+    type: [ParcelItem],
+    required: true,
+  },
 });
 const deliverySchema = new mongoose.Schema(
   {
@@ -174,37 +200,10 @@ const deliverySchema = new mongoose.Schema(
     },
 
     // Parcel information
-    packagingType: {
-      type: String,
-      enum: ["box", "bag", "envelope", "other"],
-      required: true,
-    },
-    currency: {
-      type: String,
-      enum: ["USD", "NGN", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"],
-      required: true,
-    },
-    proofOfPurchaseImage: {
-      type: String,
-      // required: true,
-    },
-    packageImage: {
-      type: String,
-      // required: true,
-    },
-    parcelItems: {
-      type: [ParcelItem],
-      required: true,
-    },
+    parcelDetails: { type: parcelSchema, required: true },
 
     courierDetails: {
       type: courierSchema,
-      required: true,
-    },
-    // Delivery information
-    courier: {
-      type: String,
-      enum: ["dhl", "ups", "fedex", "usps", "aramex", "anka", "other"],
       required: true,
     },
 
