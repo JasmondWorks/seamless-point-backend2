@@ -6,7 +6,8 @@ const axios = require("axios");
 const {
   generateAddress,
   createParcel,
-  validateAddress,
+  searchHSCodes,
+  // fetchAllHSCodes,
 } = require("../utils/terminal");
 
 const TERMINAL_API_KEY = process.env.TERMINAL_API_KEY || "YOUR_SECRET_KEY";
@@ -273,14 +274,14 @@ module.exports.cancelShipment = catchAsync(async (req, res) => {
   sendSuccessResponseData(res, "shipmentStatus", data);
 });
 module.exports.getHsCodesFromDescription = catchAsync(async (req, res) => {
-  const { description } = req.body;
+  // const allHsCodes = ;
 
-  const response = await fetch(`${TERMINAL_BASE_URL}/hs-codes`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${TERMINAL_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-  });
-  const allHsCodes = response.json();
+  const query = req.body.query || "electronics";
+
+  const results = searchHSCodes(query);
+
+  console.log("Search results:");
+  console.log(results);
+
+  sendSuccessResponseData(res, "hsCodes", results);
 });

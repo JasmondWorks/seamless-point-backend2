@@ -1,9 +1,36 @@
-import AppError from "./appError.js";
-
 const TERMINAL_API_KEY = process.env.TERMINAL_API_KEY || "YOUR_SECRET_KEY";
 const TERMINAL_BASE_URL = "https://sandbox.terminal.africa/v1";
 
-export async function generateAddress(addressDetails) {
+const AppError = require("./appError");
+
+const fs = require("fs");
+const Fuse = require("fuse.js");
+
+// Load JSON data
+const rawData = fs.readFileSync("../backend2/hscodes.json", "utf-8");
+const hsCodes = JSON.parse(rawData);
+
+// Setup Fuse.js
+const fuse = new Fuse(hsCodes, {
+  keys: [
+    "chapter_name",
+    "hs_chapter_name",
+    "category",
+    "sub_category",
+    "keywords",
+    "hs_code",
+  ],
+  threshold: 0.3,
+  includeScore: true,
+});
+
+// Search function
+module.exports.searchHSCodes = function (query, limit = 5) {
+  const results = fuse.search(query);
+  return results.slice(0, limit).map((result) => result.item);
+};
+
+module.exports.generateAddress = async function (addressDetails) {
   try {
     const isAddressValid = await validateAddress(addressDetails);
 
@@ -26,8 +53,8 @@ export async function generateAddress(addressDetails) {
     console.error(error.message);
     return { status: "error", message: error.message };
   }
-}
-export async function validateAddress(addressDetails) {
+};
+async function validateAddress(addressDetails) {
   try {
     const response = await fetch(`${TERMINAL_BASE_URL}/addresses/validate`, {
       method: "POST",
@@ -49,7 +76,7 @@ export async function validateAddress(addressDetails) {
     return { status: "error", message: error.message };
   }
 }
-export async function createParcel(parcelDetails, packagingDetails) {
+module.exports.createParcel = async function (parcelDetails, packagingDetails) {
   const packagingId = await createPackaging(packagingDetails);
   parcelDetails.packaging = packagingId;
 
@@ -73,8 +100,64 @@ export async function createParcel(parcelDetails, packagingDetails) {
     console.error(error.message);
     return { status: "error", message: error.message };
   }
-}
+};
 
+module.exports.fetchAllHSCodes = async function fetchAllHSCodes() {
+  let allCodes = [];
+  let page = 1;
+  let perPage = 200;
+  let hasMore = true;
+
+  while (hasMore) {
+    try {
+      const url = `${TERMINAL_BASE_URL}/hs-codes?page=${page}&perPage=${perPage}`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${TERMINAL_API_KEY}`,
+        },
+      });
+
+      const contentType = response.headers.get("content-type");
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error (status ${response.status}): ${errorText}`);
+      }
+
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        throw new Error(`Unexpected response format: ${text}`);
+      }
+
+      const data = await response.json();
+
+      allCodes = allCodes.concat(data.data.hs_codes);
+
+      // Pagination check — make sure pagination object exists before accessing
+      const pagination = data.data.pagination;
+      if (!pagination) break;
+
+      hasMore = pagination.currentPage < pagination.pageCount;
+      console.log(
+        `Fetched page ${page} / ${pagination.pageCount}. Total codes so far: ${allCodes.length}`
+      );
+
+      page++;
+
+      // Optional: add delay between requests to avoid hitting rate limit
+      await new Promise((resolve) => setTimeout(resolve, 600)); // 500ms delay
+    } catch (error) {
+      console.error("Error fetching HS codes:", error.message);
+      break; // Exit loop on error to avoid infinite loop
+    }
+  }
+
+  // Save to file
+  fs.writeFileSync("./hscodes.json", JSON.stringify(allCodes, null, 2));
+
+  return allCodes;
+};
 async function createPackaging(packagingDetails) {
   try {
     const response = await fetch(`${TERMINAL_BASE_URL}/packaging`, {

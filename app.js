@@ -8,7 +8,7 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const mongoSanitize = require("express-mongo-sanitize");
 const helmet = require("helmet");
-const hpp = require("hpp"); 
+const hpp = require("hpp");
 const AppError = require("./utils/appError");
 
 const userRoutes = require("./routes/userRoutes");
@@ -21,6 +21,7 @@ const shipmentRoutes = require("./routes/shipmentRoutes");
 const trackingRoutes = require("./routes/trackingRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
 const terminalRoutes = require("./routes/terminalRoutes");
+const { fetchAllHSCodes } = require("./utils/terminal");
 
 const app = express();
 
@@ -52,6 +53,18 @@ app.use((req, _, next) => {
   next();
 });
 
+async function main() {
+  try {
+    await fetchAllHSCodes();
+    console.log("✅ Finished fetching HS codes.");
+    process.exit(0); // Exit successfully
+  } catch (error) {
+    console.error("❌ Failed to fetch HS codes:", error.message || error);
+    process.exit(1); // Exit with failure
+  }
+}
+
+// main();
 // Routes
 app.get("/", (_, res) => {
   res.send("Welcome to the Seamless Point API");

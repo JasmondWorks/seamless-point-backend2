@@ -30,7 +30,12 @@ router.get(
   authController.authorize("user"),
   terminalController.getCities
 );
-
+router.get(
+  "/hs-codes",
+  authController.authenticate,
+  authController.authorize("user"),
+  terminalController.getHsCodesFromDescription
+);
 router.post(
   "/rates",
   authController.authenticate,
