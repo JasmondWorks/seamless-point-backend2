@@ -7,27 +7,28 @@ const fs = require("fs");
 const Fuse = require("fuse.js");
 
 // Load JSON data
-const rawData = fs.readFileSync("../backend2/hscodes.json", "utf-8");
-const hsCodes = JSON.parse(rawData);
+// console.log("Directory", __dirname);
+// const rawData = fs.readFileSync(`${__dirname}/hscodes.json`, "utf-8");
+// const hsCodes = JSON.parse(rawData);
 
 // Setup Fuse.js
-const fuse = new Fuse(hsCodes, {
-  keys: [
-    "chapter_name",
-    "hs_chapter_name",
-    "category",
-    "sub_category",
-    "keywords",
-    "hs_code",
-  ],
-  threshold: 0.3,
-  includeScore: true,
-});
+// const fuse = new Fuse(hsCodes, {
+//   keys: [
+//     "chapter_name",
+//     "hs_chapter_name",
+//     "category",
+//     "sub_category",
+//     "keywords",
+//     "hs_code",
+//   ],
+//   threshold: 0.3,
+//   includeScore: true,
+// });
 
 // Search function
 module.exports.searchHSCodes = function (query, limit = 5) {
-  const results = fuse.search(query);
-  return results.slice(0, limit).map((result) => result.item);
+  // const results = fuse.search(query);
+  // return results.slice(0, limit).map((result) => result.item);
 };
 
 module.exports.generateAddress = async function (addressDetails) {
