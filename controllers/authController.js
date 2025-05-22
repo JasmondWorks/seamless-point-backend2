@@ -194,16 +194,28 @@ exports.userLogin = catchAsync(async (req, res) => {
 });
 
 exports.userSignUp = catchAsync(async (req, res) => {
-  let user = await User.findOne({ email: req.body.email });
+  const { email, phoneNumber } = req.body;
 
-  if (user && user.authType === "credentials")
-    throw new AppError("Account already registered. Please log in", 409);
+  let user = await User.findOne({
+    $or: [{ email }, { phoneNumber }],
+  });
 
-  if (user && user.authType !== "credentials")
-    throw new AppError(
-      `Account already registered. Please sign in using ${user.authType}`,
-      409
-    );
+  if (user) {
+    if (user.email === email && user.authType === "credentials") {
+      throw new AppError("Email already registered. Please log in", 409);
+    }
+
+    if (user.email === email && user.authType !== "credentials") {
+      throw new AppError(
+        `Email already registered. Please sign in using ${user.authType}`,
+        409
+      );
+    }
+
+    if (user.phoneNumber === phoneNumber) {
+      throw new AppError("Phone number already in use", 409);
+    }
+  }
 
   const newUser = await User.create({ ...req.body, authType: "credentials" });
 
