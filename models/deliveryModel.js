@@ -165,11 +165,11 @@ const parcelSchema = new mongoose.Schema({
   },
   proofOfPurchaseImage: {
     type: String,
-    required: true,
+    // required: true,
   },
   packageImage: {
     type: String,
-    required: true,
+    // required: true,
   },
   parcelItems: {
     type: [ParcelItem],

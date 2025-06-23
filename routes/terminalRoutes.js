@@ -31,10 +31,10 @@ router.get(
   terminalController.getCities
 );
 router.get(
-  "/hs-codes",
+  "/hs-codes/search",
   authController.authenticate,
   authController.authorize("user"),
-  terminalController.getHsCodesFromDescription
+  terminalController.searchHsCode
 );
 router.post(
   "/rates",

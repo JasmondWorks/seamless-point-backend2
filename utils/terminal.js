@@ -1,3 +1,5 @@
+const path = require('path')
+
 const TERMINAL_API_KEY = process.env.TERMINAL_API_KEY || "YOUR_SECRET_KEY";
 const TERMINAL_BASE_URL = "https://sandbox.terminal.africa/v1";
 
@@ -92,7 +94,7 @@ module.exports.createParcel = async function (parcelDetails, packagingDetails) {
     });
     const data = await response.json();
 
-    console.log(data);
+    console.log("Parcel", data);
 
     if (!response.ok) throw new AppError(data.message, 400);
 
@@ -132,8 +134,14 @@ module.exports.fetchAllHSCodes = async function fetchAllHSCodes() {
       }
 
       const data = await response.json();
+      const formattedData = data.data.hs_codes.map(item => ({
+        hs_code: item.hs_code,
+        label: `${item.hs_code} - ${item.sub_category}`,
+        keywords: item.keywords,
+        id: item._id
+      }))
 
-      allCodes = allCodes.concat(data.data.hs_codes);
+      allCodes = allCodes.concat(formattedData);
 
       // Pagination check — make sure pagination object exists before accessing
       const pagination = data.data.pagination;
@@ -154,8 +162,25 @@ module.exports.fetchAllHSCodes = async function fetchAllHSCodes() {
     }
   }
 
+  const rootDir = process.cwd();
+  const dirPath = path.join(rootDir, 'data');
+  const filePath = path.join(dirPath, 'hscodes.json');
+
   // Save to file
-  fs.writeFileSync("./hscodes.json", JSON.stringify(allCodes, null, 2));
+  const jsonString = JSON.stringify(allCodes, null, 2);
+
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true }); // recursive true to create nested dirs if needed
+  }
+
+  fs.writeFile(filePath, jsonString, 'utf8', (err) => {
+    if (err) {
+      console.error('Error writing file:', err);
+      return;
+    }
+    console.log('JSON file has been saved!');
+  });
 
   return allCodes;
 };

@@ -4,16 +4,17 @@ const mongoose = require("mongoose");
 const itemSchema = new mongoose.Schema({
   description: { type: String, required: true },
   name: { type: String, required: true },
-  weight: { type: Number, required: true },
   currency: { type: String, required: true },
   value: { type: Number, required: true },
+  weight: { type: Number, required: true },
   quantity: { type: Number, required: true },
+
 });
 
 const parcelSchema = new mongoose.Schema({
-  description: { type: String, required: true },
   items: { type: [itemSchema], required: true },
   weight_unit: { type: String, required: true },
+  description: { type: String, default: 'Description...' }
 });
 
 const shipmentSchema = new mongoose.Schema({

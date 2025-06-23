@@ -1,3 +1,6 @@
+const path = require('path')
+const fs = require('fs')
+
 const AppError = require("../utils/appError");
 const Shipment = require("../models/shipmentModel");
 
@@ -7,6 +10,7 @@ const {
   generateAddress,
   createParcel,
   searchHSCodes,
+  fetchAllHSCodes,
   // fetchAllHSCodes,
 } = require("../utils/terminal");
 
@@ -121,15 +125,18 @@ module.exports.getRates = catchAsync(async (req, res) => {
   const parcel_id = await createParcel(parcelDetails, packagingDetails);
 
   console.log("Parcel id", parcel_id);
+  console.log("Pickup address id", pickup_address_id)
+  console.log("Delivery address id", delivery_address_id)
+  console.log("Parcel id", parcel_id)
 
   if (pickup_address_id.status === "error")
     throw new AppError(pickup_address_id.message);
   if (delivery_address_id.status === "error")
     throw new AppError(delivery_address_id.message);
   if (parcel_id.status === "error")
-    throw new AppError(
-      "Cannot generate a parcel at this time. Try again later"
-    );
+    throw new AppError(parcel_id.message);
+
+
 
   const response = await fetch(
     `${TERMINAL_BASE_URL}/rates/shipment/?delivery_address=${delivery_address_id}&pickup_address=${pickup_address_id}&currency=${currency}&parcel_id=${parcel_id}`,
@@ -248,9 +255,10 @@ module.exports.arrangeShipmentPickup = catchAsync(async (req, res) => {
       "Content-Type": "application/json",
     },
   });
+  console.log("response", response)
   const data = await response.json();
 
-  console.log(data);
+  console.log("pickup data", data);
 
   if (!response.ok) throw new AppError(data.message, 400);
 
@@ -273,15 +281,37 @@ module.exports.cancelShipment = catchAsync(async (req, res) => {
 
   sendSuccessResponseData(res, "shipmentStatus", data);
 });
-module.exports.getHsCodesFromDescription = catchAsync(async (req, res) => {
-  // const allHsCodes = ;
 
-  const query = req.body.query || "electronics";
 
-  const results = searchHSCodes(query);
+module.exports.searchHsCode = catchAsync(async (req, res) => {
+  const query = (req.query.q || "").toLowerCase();
 
-  console.log("Search results:");
-  console.log(results);
+  const jsonPath = path.join(process.cwd(), "data", "hscodes.json");
 
-  sendSuccessResponseData(res, "hsCodes", results);
+  fs.readFile(jsonPath, "utf-8", (err, data) => {
+    if (err) {
+      console.error("Error reading file:", err);
+      return res.status(500).json({ message: "Error reading HS codes" });
+    }
+
+    try {
+      const jsonData = JSON.parse(data);
+
+      // Filter by label or keywords
+      const filtered = jsonData.filter((item) => {
+        return (
+          item.label.toLowerCase().includes(query) ||
+          item.keywords.toLowerCase().includes(query)
+        );
+      });
+
+      // Return top 50 matches
+      const result = filtered.slice(0, 50);
+
+      sendSuccessResponseData(res, "hsCodes", result);
+    } catch (parseErr) {
+      console.error("Error parsing JSON:", parseErr);
+      return res.status(500).json({ message: "Error parsing HS codes" });
+    }
+  });
 });
