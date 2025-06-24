@@ -181,7 +181,7 @@ const deliverySchema = new mongoose.Schema(
     trackingId: {
       type: String,
       unique: true,
-      default: generateTrackingID,
+      default: () => generateTrackingID(),
     },
     deliveryType: {
       type: String,
