@@ -1,5 +1,5 @@
-const path = require('path')
-const fs = require('fs')
+const path = require("path");
+const fs = require("fs");
 
 const AppError = require("../utils/appError");
 const Shipment = require("../models/shipmentModel");
@@ -11,6 +11,7 @@ const {
   createParcel,
   searchHSCodes,
   fetchAllHSCodes,
+  fetchAllCategories,
   // fetchAllHSCodes,
 } = require("../utils/terminal");
 
@@ -68,19 +69,15 @@ module.exports.getCities = catchAsync(async (req, res) => {
   sendSuccessResponseData(res, "cities", response?.data);
 });
 
-module.exports.createAddress = catchAsync(async (req, res) => {
+module.exports.validateAddress = catchAsync(async (req, res) => {
   const {
     city,
     state,
     country,
     email,
     firstName: first_name,
-    // isResidential: is_residential,
     lastName: last_name,
     line1,
-    // line2,
-    // metadata,
-    // fullName: name,
     phone,
     zip,
   } = req.body;
@@ -90,22 +87,70 @@ module.exports.createAddress = catchAsync(async (req, res) => {
     country,
     email,
     first_name,
-    // is_residential,
     last_name,
     line1,
-    // line2,
-    // metadata,
-    // name,
     phone,
     state,
     zip,
   };
 
-  const newAddress = await generateAddress(payload);
+  const response = await fetch(`${TERMINAL_BASE_URL}/addresses/validate`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: {
+      Authorization: `Bearer ${TERMINAL_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const data = await response.json();
 
-  console.log(newAddress);
+  if (!response.ok) throw new AppError(data.message, 400);
 
-  sendSuccessResponseData(res, "address", newAddress);
+  sendSuccessResponseData(res, "address", {
+    id: data.data.address_id,
+    message: data.message,
+  });
+});
+module.exports.createAddress = catchAsync(async (req, res) => {
+  const {
+    city,
+    state,
+    country,
+    email,
+    firstName: first_name,
+    lastName: last_name,
+    line1,
+    phone,
+    zip,
+  } = req.body;
+
+  const payload = {
+    city,
+    country,
+    email,
+    first_name,
+    last_name,
+    line1,
+    phone,
+    state,
+    zip,
+  };
+
+  const response = await fetch(`${TERMINAL_BASE_URL}/addresses`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: {
+      Authorization: `Bearer ${TERMINAL_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new AppError(data.message, 400);
+
+  sendSuccessResponseData(res, "address", {
+    id: data.data.address_id,
+    message: data.message,
+  });
 });
 module.exports.getRates = catchAsync(async (req, res) => {
   const {
@@ -125,18 +170,15 @@ module.exports.getRates = catchAsync(async (req, res) => {
   const parcel_id = await createParcel(parcelDetails, packagingDetails);
 
   console.log("Parcel id", parcel_id);
-  console.log("Pickup address id", pickup_address_id)
-  console.log("Delivery address id", delivery_address_id)
-  console.log("Parcel id", parcel_id)
+  console.log("Pickup address id", pickup_address_id);
+  console.log("Delivery address id", delivery_address_id);
+  console.log("Parcel id", parcel_id);
 
   if (pickup_address_id.status === "error")
     throw new AppError(pickup_address_id.message);
   if (delivery_address_id.status === "error")
     throw new AppError(delivery_address_id.message);
-  if (parcel_id.status === "error")
-    throw new AppError(parcel_id.message);
-
-
+  if (parcel_id.status === "error") throw new AppError(parcel_id.message);
 
   const response = await fetch(
     `${TERMINAL_BASE_URL}/rates/shipment/?delivery_address=${delivery_address_id}&pickup_address=${pickup_address_id}&currency=${currency}&parcel_id=${parcel_id}`,
@@ -255,7 +297,7 @@ module.exports.arrangeShipmentPickup = catchAsync(async (req, res) => {
       "Content-Type": "application/json",
     },
   });
-  console.log("response", response)
+  console.log("response", response);
   const data = await response.json();
 
   console.log("pickup data", data);
@@ -281,7 +323,6 @@ module.exports.cancelShipment = catchAsync(async (req, res) => {
 
   sendSuccessResponseData(res, "shipmentStatus", data);
 });
-
 
 module.exports.searchHsCode = catchAsync(async (req, res) => {
   const query = (req.query.q || "").toLowerCase();
@@ -314,4 +355,70 @@ module.exports.searchHsCode = catchAsync(async (req, res) => {
       return res.status(500).json({ message: "Error parsing HS codes" });
     }
   });
+});
+
+module.exports.getCategories = catchAsync(async (_, res) => {
+  const allCategories = await fetchAllCategories();
+
+  const categories = [];
+
+  allCategories.forEach((item) => {
+    // Find or create category
+    let category = categories.find((c) => c.name === item.category);
+    if (!category) {
+      category = {
+        name: item.category,
+        subcategories: [],
+      };
+      categories.push(category);
+    }
+
+    // Find or create subcategory
+    let subCategory = category.subcategories.find(
+      (sc) => sc.name === item.subCategory
+    );
+    if (!subCategory) {
+      subCategory = {
+        name: item.subCategory,
+        hsCodes: [],
+      };
+      category.subcategories.push(subCategory);
+    }
+
+    // Add hsCode if not duplicate
+    const exists = subCategory.hsCodes.some(
+      (h) => h.hsCode === item.hsCode && h.label === item.hsCodeLabel
+    );
+
+    if (!exists) {
+      subCategory.hsCodes.push({
+        label: item.hsCodeLabel,
+        hsCode: item.hsCode,
+      });
+    }
+  });
+
+  sendSuccessResponseData(res, "categories", categories);
+});
+module.exports.getSubCategories = catchAsync(async (req, res) => {
+  const response = await fetch(
+    `${TERMINAL_BASE_URL}/hs-codes/simplified/category`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${TERMINAL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  const { category } = req;
+
+  const hsCodes = [];
+  const page = 1;
+
+  const data = await response.json();
+
+  if (!response.ok) throw new AppError(data.message, 400);
+
+  sendSuccessResponseData(res, "categories", data);
 });

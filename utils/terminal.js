@@ -1,4 +1,4 @@
-const path = require('path')
+const path = require("path");
 
 const TERMINAL_API_KEY = process.env.TERMINAL_API_KEY || "YOUR_SECRET_KEY";
 const TERMINAL_BASE_URL = "https://sandbox.terminal.africa/v1";
@@ -37,6 +37,7 @@ module.exports.generateAddress = async function (addressDetails) {
   try {
     const isAddressValid = await validateAddress(addressDetails);
 
+    console.log(isAddressValid);
     if (isAddressValid.status === "error")
       throw new AppError(isAddressValid.message, 400);
 
@@ -134,12 +135,12 @@ module.exports.fetchAllHSCodes = async function fetchAllHSCodes() {
       }
 
       const data = await response.json();
-      const formattedData = data.data.hs_codes.map(item => ({
+      const formattedData = data.data.hs_codes.map((item) => ({
         hs_code: item.hs_code,
         label: `${item.hs_code} - ${item.sub_category}`,
         keywords: item.keywords,
-        id: item._id
-      }))
+        id: item._id,
+      }));
 
       allCodes = allCodes.concat(formattedData);
 
@@ -163,8 +164,8 @@ module.exports.fetchAllHSCodes = async function fetchAllHSCodes() {
   }
 
   const rootDir = process.cwd();
-  const dirPath = path.join(rootDir, 'data');
-  const filePath = path.join(dirPath, 'hscodes.json');
+  const dirPath = path.join(rootDir, "data");
+  const filePath = path.join(dirPath, "hscodes.json");
 
   // Save to file
   const jsonString = JSON.stringify(allCodes, null, 2);
@@ -174,16 +175,47 @@ module.exports.fetchAllHSCodes = async function fetchAllHSCodes() {
     fs.mkdirSync(dirPath, { recursive: true }); // recursive true to create nested dirs if needed
   }
 
-  fs.writeFile(filePath, jsonString, 'utf8', (err) => {
+  fs.writeFile(filePath, jsonString, "utf8", (err) => {
     if (err) {
-      console.error('Error writing file:', err);
+      console.error("Error writing file:", err);
       return;
     }
-    console.log('JSON file has been saved!');
+    console.log("JSON file has been saved!");
   });
 
   return allCodes;
 };
+module.exports.fetchAllCategories = async function fetchAllHSCodes() {
+  const initialRes = await fetch(`${TERMINAL_BASE_URL}/hs-codes/simplified`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${TERMINAL_API_KEY}`,
+    },
+  });
+  const initialData = await initialRes.json();
+
+  const totalItems = initialData.data.pagination.total;
+
+  const url = `${TERMINAL_BASE_URL}/hs-codes/simplified?perPage=${totalItems}`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${TERMINAL_API_KEY}`,
+    },
+  });
+  const data = await response.json();
+
+  const formattedData = data.data.hs_codes.map((item) => ({
+    hsCode: item.hs_code,
+    hsCodeLabel: item.sub_category,
+    category: item.chapter_name,
+    subCategory: item.category,
+    id: item._id,
+  }));
+
+  return formattedData;
+};
+
 async function createPackaging(packagingDetails) {
   try {
     const response = await fetch(`${TERMINAL_BASE_URL}/packaging`, {

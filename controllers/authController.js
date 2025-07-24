@@ -14,7 +14,7 @@ exports.authenticate = catchAsync(async (req, _res, next) => {
     (req.headers.authorization?.startsWith("Bearer") &&
       req.headers.authorization.split(" ")[1]) ||
     (req.headers.cookie?.startsWith("jwt") &&
-    typeof req.headers.cookie === "string"
+      typeof req.headers.cookie === "string"
       ? req.headers.cookie.split("=")[1]
       : undefined);
 
@@ -64,7 +64,7 @@ exports.authenicateAdmin = catchAsync(async (req, res) => {
     (req.headers.authorization?.startsWith("Bearer") &&
       req.headers.authorization.split(" ")[1]) ||
     (req.headers.cookie?.startsWith("jwt") &&
-    typeof req.headers.cookie === "string"
+      typeof req.headers.cookie === "string"
       ? req.headers.cookie.split("=")[1]
       : undefined);
 
@@ -95,7 +95,7 @@ exports.authenticateUser = catchAsync(async (req, res) => {
     (req.headers.authorization?.startsWith("Bearer") &&
       req.headers.authorization.split(" ")[1]) ||
     (req.headers.cookie?.startsWith("jwt") &&
-    typeof req.headers.cookie === "string"
+      typeof req.headers.cookie === "string"
       ? req.headers.cookie.split("=")[1]
       : undefined);
 

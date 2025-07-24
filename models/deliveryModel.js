@@ -36,7 +36,7 @@ const ParcelItem = new mongoose.Schema({
   // Item
   category: {
     type: String,
-    enum: ["clothing", "electronics", "food", "other"],
+    // enum: ["clothing", "electronics", "food", "other"],
     required: function () {
       return this.type === "item";
     },

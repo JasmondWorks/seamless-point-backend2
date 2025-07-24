@@ -11,6 +11,12 @@ router.post(
   authController.authorize("user"),
   terminalController.createAddress
 );
+router.post(
+  "/addresses/validate",
+  authController.authenticate,
+  authController.authorize("user"),
+  terminalController.validateAddress
+);
 
 router.get(
   "/countries",
@@ -79,6 +85,19 @@ router.post(
   authController.authenticate,
   authController.authorize("user"),
   terminalController.arrangeShipmentPickup
+);
+
+router.get(
+  "/categories",
+  authController.authenticate,
+  authController.authorize("user"),
+  terminalController.getCategories
+);
+router.get(
+  "/:category/sub-categories",
+  authController.authenticate,
+  authController.authorize("user"),
+  terminalController.getSubCategories
 );
 
 module.exports = router;

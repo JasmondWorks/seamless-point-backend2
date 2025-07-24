@@ -67,8 +67,9 @@ module.exports.getAllUserDelivery = catchAsync(async (req, res) => {
 });
 
 module.exports.getDelivery = catchAsync(async (req, res) => {
+  console.log('params id', req.params.id)
   const delivery = await Delivery.findOne({
-    trackingId: req.params.id,
+    "courierDetails.trackingNumber": req.params.id,
   }).populate("driver");
 
   if (!delivery) throw new AppError("Delivery could not be found", 404);
