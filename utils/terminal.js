@@ -80,10 +80,7 @@ async function validateAddress(addressDetails) {
     return { status: "error", message: error.message };
   }
 }
-module.exports.createParcel = async function (parcelDetails, packagingDetails) {
-  const packagingId = await createPackaging(packagingDetails);
-  parcelDetails.packaging = packagingId;
-
+module.exports.createParcel = async function (parcelDetails) {
   try {
     const response = await fetch(`${TERMINAL_BASE_URL}/parcels`, {
       method: "POST",

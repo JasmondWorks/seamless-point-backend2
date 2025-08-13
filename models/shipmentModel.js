@@ -8,13 +8,12 @@ const itemSchema = new mongoose.Schema({
   value: { type: Number, required: true },
   weight: { type: Number, required: true },
   quantity: { type: Number, required: true },
-
 });
 
 const parcelSchema = new mongoose.Schema({
   items: { type: [itemSchema], required: true },
   weight_unit: { type: String, required: true },
-  description: { type: String, default: 'Description...' }
+  description: { type: String, default: "Description..." },
 });
 
 const shipmentSchema = new mongoose.Schema({
@@ -34,18 +33,8 @@ const shipmentSchema = new mongoose.Schema({
     line1: { type: String, required: true },
     phone: { type: String, required: true },
   },
-  packagingDetails: {
-    height: { type: Number, required: true },
-    length: { type: Number, required: true },
-    name: { type: String, required: true },
-    size_unit: { type: String, required: true },
-    type: { type: String, required: true },
-    width: { type: Number, required: true },
-    weight: { type: Number, required: true },
-    weight_unit: { type: String, required: true },
-  },
   parcelDetails: { type: parcelSchema, required: true },
-  currency: { type: String, required: true },
+  // currency: { type: String, required: true },
 });
 
 // Create a model (won't be used to save)

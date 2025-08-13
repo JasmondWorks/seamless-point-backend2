@@ -143,6 +143,7 @@ const receiverSchema = new mongoose.Schema({
   },
 });
 const courierSchema = new mongoose.Schema({
+  amount: { type: Number, required: true },
   courierName: { type: String, required: true },
   courierLogo: { type: String, required: true },
   rateId: { type: String, required: true },
@@ -150,7 +151,6 @@ const courierSchema = new mongoose.Schema({
   trackingUrl: { type: String, required: true },
   trackingNumber: { type: String, required: true },
   reference: { type: String },
-  amount: { type: Number, required: true },
 });
 const parcelSchema = new mongoose.Schema({
   packagingType: {

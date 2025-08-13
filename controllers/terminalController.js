@@ -147,19 +147,10 @@ module.exports.createAddress = catchAsync(async (req, res) => {
   const data = await response.json();
   if (!response.ok) throw new AppError(data.message, 400);
 
-  sendSuccessResponseData(res, "address", {
-    id: data.data.address_id,
-    message: data.message,
-  });
+  sendSuccessResponseData(res, "address", data);
 });
 module.exports.getRates = catchAsync(async (req, res) => {
-  const {
-    pickupAddress,
-    deliveryAddress,
-    currency,
-    parcelDetails,
-    packagingDetails,
-  } = req.body;
+  const { pickupAddress, deliveryAddress, currency, parcelDetails } = req.body;
 
   const shipment = new Shipment(req.body);
 
@@ -167,7 +158,7 @@ module.exports.getRates = catchAsync(async (req, res) => {
 
   const pickup_address_id = await generateAddress(pickupAddress);
   const delivery_address_id = await generateAddress(deliveryAddress);
-  const parcel_id = await createParcel(parcelDetails, packagingDetails);
+  const parcel_id = await createParcel(parcelDetails);
 
   console.log("Parcel id", parcel_id);
   console.log("Pickup address id", pickup_address_id);
@@ -189,6 +180,7 @@ module.exports.getRates = catchAsync(async (req, res) => {
       },
     }
   );
+
   let data = await response.json();
 
   data = {
