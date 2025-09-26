@@ -9,14 +9,12 @@ const axios = require("axios");
 const {
   generateAddress,
   createParcel,
-  searchHSCodes,
-  fetchAllHSCodes,
   fetchAllCategories,
-  // fetchAllHSCodes,
 } = require("../utils/terminal");
 
 const TERMINAL_API_KEY = process.env.TERMINAL_API_KEY || "YOUR_SECRET_KEY";
-const TERMINAL_BASE_URL = "https://sandbox.terminal.africa/v1";
+const TERMINAL_BASE_URL =
+  process.env.TERMINAL_BASE_URL || "https://sandbox.terminal.africa/v1";
 
 module.exports.getCountries = catchAsync(async (_, res) => {
   const response = await axios.get(`${TERMINAL_BASE_URL}/countries`, {

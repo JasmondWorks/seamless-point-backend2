@@ -29,7 +29,7 @@ const notificationSchema = new mongoose.Schema(
       enum: ["Payment", "Delivery", "Other"], // Add more as needed
     },
     referenceId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       required: true,
     },
     // type of the notification (e.g., "info", "warning", "success", "error", etc.)
@@ -44,13 +44,6 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-
-    // Status of the notification (e.g., "sent", "delivered", "failed")
-    //   status: {
-    //     type: String,
-    //     enum: ["sent", "delivered", "failed"],
-    //     default: "sent",
-    //   },
   },
   { timestamps: true }
 );

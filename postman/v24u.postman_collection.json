@@ -1,0 +1,223 @@
+{
+  "info": {
+    "name": "Seamless Point V24U",
+    "description": "Collection for Seamless Point V24U proxy endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "v24uToken",
+      "value": "tk77U352WB76546252xUxU"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Data Bundles",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{v24uToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/v24u/data/bundles?provider=mtn",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "v24u",
+            "data",
+            "bundles"
+          ],
+          "query": [
+            {
+              "key": "provider",
+              "value": "mtn",
+              "description": "Network provider (mtn, airtel, glo, 9mobile)"
+            }
+          ]
+        },
+        "description": "Retrieve standard data bundles for a provider."
+      },
+      "response": []
+    },
+    {
+      "name": "Get SME Data Bundles",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{v24uToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/v24u/data/bundles?provider=glo&type=sme",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "v24u",
+            "data",
+            "bundles"
+          ],
+          "query": [
+            {
+              "key": "provider",
+              "value": "glo",
+              "description": "Network provider (mtn, airtel, glo, 9mobile)"
+            },
+            {
+              "key": "type",
+              "value": "sme",
+              "description": "Bundle type (e.g. sme)"
+            }
+          ]
+        },
+        "description": "Retrieve SME bundles for a provider by adding the type query parameter."
+      },
+      "response": []
+    },
+    {
+      "name": "Buy Data Bundle",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{v24uToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"provider\": \"mtn\",\n  \"recipient\": \"08011111111\",\n  \"bundleCode\": \"mtn-3gb-2500\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/v24u/data/buy",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "v24u",
+            "data",
+            "buy"
+          ]
+        },
+        "description": "Purchase a data bundle using the Seamless Point proxy endpoint."
+      },
+      "response": []
+    },
+    {
+      "name": "Buy SME Data Bundle",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{v24uToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"provider\": \"glo\",\n  \"recipient\": \"08011111111\",\n  \"bundleCode\": \"glo-dg-500\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/v24u/data/buy?type=sme",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "v24u",
+            "data",
+            "buy"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "sme",
+              "description": "Bundle type when buying SME data"
+            }
+          ]
+        },
+        "description": "Purchase an SME bundle by toggling the type query parameter."
+      },
+      "response": []
+    },
+    {
+      "name": "Top Up Airtime",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{v24uToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"provider\": \"mtn\",\n  \"recipient\": \"08011111111\",\n  \"amount\": 500\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/v24u/topupAirtime",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "v24u",
+            "topupAirtime"
+          ]
+        },
+        "description": "Stub endpoint for airtime top up payload validation."
+      },
+      "response": []
+    }
+  ]
+}

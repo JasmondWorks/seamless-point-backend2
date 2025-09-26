@@ -21,7 +21,7 @@ const shipmentRoutes = require("./routes/shipmentRoutes");
 const trackingRoutes = require("./routes/trackingRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
 const terminalRoutes = require("./routes/terminalRoutes");
-const { fetchAllHSCodes } = require("./utils/terminal");
+const v24uRoutes = require("./routes/v24uRoutes");
 
 const app = express();
 
@@ -53,18 +53,6 @@ app.use((req, _, next) => {
   next();
 });
 
-async function main() {
-  try {
-    await fetchAllHSCodes();
-    console.log("✅ Finished fetching HS codes.");
-    process.exit(0); // Exit successfully
-  } catch (error) {
-    console.error("❌ Failed to fetch HS codes:", error.message || error);
-    process.exit(1); // Exit with failure
-  }
-}
-
-// main();
 // Routes
 app.get("/", (_, res) => {
   res.send("Welcome to the Seamless Point API");
@@ -83,6 +71,7 @@ app.use("/api/v1/shipment", shipmentRoutes);
 app.use("/api/v1/tracking", trackingRoutes);
 app.use("/api/v1/webhook", webhookRoutes);
 app.use("/api/v1/terminal", terminalRoutes);
+app.use("/api/v1/v24u", v24uRoutes);
 
 app.get("/", (_req, res) => {
   res.send("<h1>Deployment Check</h1>");
