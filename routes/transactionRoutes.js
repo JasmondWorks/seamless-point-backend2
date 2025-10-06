@@ -5,6 +5,8 @@ const {
   webhook,
   createTransaction,
   createVirtualAccount,
+  deleteVirtualAccount,
+  getVirtualAccount,
   getBanksList,
   getAccountDetails,
   withdrawFunds,
@@ -37,10 +39,22 @@ router.post(
   getAccountDetails
 );
 router.post(
-  "/paystack/virtual-account",
+  "/monnify/virtual-account",
   authController.authenticate,
   authController.authorize("user"),
   createVirtualAccount
+);
+router.get(
+  "/monnify/virtual-account",
+  authController.authenticate,
+  authController.authorize("user"),
+  getVirtualAccount
+);
+router.delete(
+  "/monnify/virtual-account",
+  authController.authenticate,
+  authController.authorize("user"),
+  deleteVirtualAccount
 );
 router.post(
   "/withdraw",
@@ -48,13 +62,19 @@ router.post(
   authController.authorize("user"),
   withdrawFunds
 );
-router.get(
+router.post(
   "/webhook",
-  express.json({
-    verify: (req, res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
+  (req, res, next) => {
+    const chunks = [];
+    req.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      req.rawBody = Buffer.concat(chunks);
+      req.body = JSON.parse(req.rawBody.toString());
+      next();
+    });
+  },
   webhook
 );
 router.post(

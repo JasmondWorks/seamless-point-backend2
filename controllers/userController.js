@@ -44,7 +44,8 @@ module.exports.updateMe = catchAsync(async (req, res) => {
     "lastName",
     "firstName",
     "gender",
-    "profileImage"
+    "profileImage",
+    "virtualAccount"
   );
 
   const updatedUser = await User.findByIdAndUpdate(req.user._id, filteredBody, {

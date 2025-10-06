@@ -5,6 +5,9 @@ const { catchAsync, sendSuccessResponseData } = require("../utils/helpers");
 const AppError = require("../utils/appError");
 const Notifications = require("../models/notificationModel");
 
+const MONNIFY_BASE_URL =
+  process.env.MONNIFY_BASE_URL || "https://sandbox.monnify.com";
+
 module.exports.createTransaction = catchAsync(async (req, res, next) => {
   const { amount, type, reference } = req.body;
   const remark = req.body?.remark || "";
@@ -185,82 +188,6 @@ module.exports.getAccountDetails = catchAsync(async (req, res) => {
     res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 });
-// module.exports.createVirtualAccount = catchAsync(async (req, res) => {
-//   const {
-//     email,
-//     firstName: first_name,
-//     // last_name,
-//     phoneNumber: phone,
-//   } = req.user;
-
-//   // res.json(req.user);
-
-//   if (!email || !first_name || !phone) {
-//     return res.status(400).json({ error: "All fields are required." });
-//   }
-
-//   try {
-//     // Step 1: Create customer (or reuse if already exists in your DB)
-//     const customerRes = await fetch("https://api.paystack.co/customer", {
-//       method: "POST",
-//       headers: {
-//         Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({
-//         email,
-//         first_name,
-//         // last_name,
-//         phone,
-//       }),
-//     });
-
-//     const customerData = await customerRes.json();
-
-//     if (!customerRes.ok) {
-//       throw new Error(
-//         customerData.message || "Failed to create Paystack customer"
-//       );
-//     }
-
-//     const customerCode = customerData.data.customer_code;
-
-//     // Step 2: Create Dedicated Virtual Account for that customer
-//     const accountRes = await fetch(
-//       "https://api.paystack.co/dedicated_account",
-//       {
-//         method: "POST",
-//         headers: {
-//           Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           customer: customerCode,
-//           preferred_bank: "wema-bank", // Optional: You can use "wema-bank", "providus", etc.
-//         }),
-//       }
-//     );
-
-//     const accountData = await accountRes.json();
-
-//     if (!accountRes.ok) {
-//       throw new Error(
-//         accountData.message || "Failed to create virtual account"
-//       );
-//     }
-
-//     // Step 3: Return the virtual account details
-//     res.json({
-//       success: true,
-//       message: "Virtual account created successfully",
-//       data: accountData.data, // Contains account number, bank name, etc.
-//     });
-//   } catch (err) {
-//     console.error("Error creating virtual account:", err.message);
-//     res.status(500).json({ error: err.message || "Internal Server Error" });
-//   }
-// });
-
 // Generate Monnify Access Token
 async function getMonnifyToken() {
   const credentials = Buffer.from(
@@ -269,7 +196,6 @@ async function getMonnifyToken() {
 
   console.log("API Key:", process.env.MONNIFY_API_KEY);
   console.log("Secret Key:", process.env.MONNIFY_SECRET_KEY);
-  console.log("Paystack secret: ", process.env.PAYSTACK_SECRET_KEY);
 
   const res = await fetch("https://sandbox.monnify.com/api/v1/auth/login", {
     method: "POST",
@@ -279,8 +205,6 @@ async function getMonnifyToken() {
     },
     body: JSON.stringify({}),
   });
-
-  console.log("credentials: ", credentials);
 
   const data = await res.json();
 
@@ -292,22 +216,163 @@ async function getMonnifyToken() {
   return data.responseBody.accessToken;
 }
 
-// Controller to Create Static Virtual Account
+async function fetchMonnifyReservedAccounts(accessToken, email) {
+  const attempts = [];
+
+  const queryPayload = {
+    page: 0,
+    size: 50,
+    customerEmail: email,
+  };
+
+  if (process.env.MONNIFY_CONTRACT_CODE) {
+    queryPayload.contractCode = process.env.MONNIFY_CONTRACT_CODE;
+  }
+
+  attempts.push({
+    label: "query-post",
+    url: `${MONNIFY_BASE_URL}/api/v2/bank-transfer/reserved-accounts/query`,
+    options: {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(queryPayload),
+    },
+    extract: (payload) =>
+      payload?.responseBody?.content || payload?.responseBody?.accounts || [],
+  });
+
+  const params = new URLSearchParams({
+    customerEmail: email,
+    page: "0",
+    size: "50",
+  });
+
+  if (process.env.MONNIFY_CONTRACT_CODE) {
+    params.append("contractCode", process.env.MONNIFY_CONTRACT_CODE);
+  }
+
+  attempts.push({
+    label: "list-get",
+    url: `${MONNIFY_BASE_URL}/api/v2/bank-transfer/reserved-accounts?${params.toString()}`,
+    options: {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    extract: (payload) =>
+      payload?.responseBody?.content || payload?.responseBody?.accounts || [],
+  });
+
+  for (const attempt of attempts) {
+    try {
+      const response = await fetch(attempt.url, attempt.options);
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const message =
+          payload?.responseMessage ||
+          payload?.message ||
+          response.statusText ||
+          "Failed to fetch reserved accounts.";
+
+        console.error(
+          `Monnify reserved account lookup (${attempt.label}) failed:`,
+          `${response.status} ${message}`
+        );
+        continue;
+      }
+
+      const accounts = attempt.extract(payload);
+
+      if (Array.isArray(accounts) && accounts.length > 0) {
+        return accounts;
+      }
+    } catch (error) {
+      console.error(
+        `Monnify reserved account lookup (${attempt.label}) encountered error:`,
+        error.message
+      );
+    }
+  }
+
+  return [];
+}
+
+async function storeVirtualAccountOnUser(userId, account) {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  user.virtualAccount = {
+    accountNumber: account.accountNumber,
+    accountName: account.accountName,
+    bankName: account.bankName,
+    bankCode: account.bankCode,
+    createdAt: account.createdOn ? new Date(account.createdOn) : new Date(),
+  };
+
+  await user.save();
+
+  return user.virtualAccount;
+}
+
 module.exports.createVirtualAccount = catchAsync(async (req, res) => {
   const { _id: customerRef, firstName: name, email } = req.user;
 
-  // res.json(req.user);
-
   if (!email || !name || !customerRef) {
-    return res
-      .status(400)
-      .json({ error: "Email, name and customerRef are required." });
+    return res.status(400).json({
+      error: "Email, name and customerRef are required.",
+    });
+  }
+
+  const existingUser = await User.findById(req.user._id);
+  if (
+    existingUser &&
+    existingUser.virtualAccount &&
+    existingUser.virtualAccount.accountNumber
+  ) {
+    if (!existingUser.virtualAccount.isDeleted) {
+      return res.status(200).json({
+        message: "Virtual account already exists",
+        data: existingUser.virtualAccount,
+      });
+    } else {
+      // Re-enable the deleted account
+      existingUser.virtualAccount.isDeleted = false;
+      await existingUser.save();
+      return res.status(200).json({
+        message: "Virtual account re-enabled successfully",
+        data: existingUser.virtualAccount,
+      });
+    }
   }
 
   const accessToken = await getMonnifyToken();
 
+  let reservedAccounts = await fetchMonnifyReservedAccounts(accessToken, email);
+
+  console.log("reserved", reservedAccounts);
+
+  if (reservedAccounts.length > 0) {
+    const account = reservedAccounts[0];
+    const savedAccount = await storeVirtualAccountOnUser(req.user._id, account);
+
+    return res.status(200).json({
+      message: "Virtual account retrieved successfully",
+      data: savedAccount,
+    });
+  }
+
+  const accountReference = `${customerRef}_${Date.now()}`;
+
   const response = await fetch(
-    "https://api.monnify.com/api/v2/bank-transfer/reserved-accounts",
+    `${MONNIFY_BASE_URL}/api/v2/bank-transfer/reserved-accounts`,
     {
       method: "POST",
       headers: {
@@ -315,29 +380,145 @@ module.exports.createVirtualAccount = catchAsync(async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        accountReference: customerRef, // should be unique per user
+        accountReference,
         accountName: name,
         currencyCode: "NGN",
         contractCode: process.env.MONNIFY_CONTRACT_CODE,
         customerEmail: email,
         customerName: name,
-        getAllAvailableBanks: true, // returns multiple banks like Wema, Zenith, etc
+        getAllAvailableBanks: true,
       }),
     }
   );
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    console.error("Monnify error:", data);
-    return res.status(500).json({
-      error: data.responseMessage || "Failed to create virtual account",
+    const errorMessage =
+      data?.responseMessage ||
+      data?.message ||
+      "Failed to create virtual account";
+
+    const fallbackAccounts = Array.isArray(data?.responseBody?.accounts)
+      ? data.responseBody.accounts
+      : Array.isArray(data?.responseBody?.content)
+        ? data.responseBody.content
+        : [];
+
+    if (fallbackAccounts.length > 0) {
+      const account = fallbackAccounts[0];
+      const savedAccount = await storeVirtualAccountOnUser(
+        req.user._id,
+        account
+      );
+
+      return res.status(200).json({
+        message: "Virtual account retrieved successfully",
+        data: savedAccount,
+      });
+    }
+
+    if (
+      typeof errorMessage === "string" &&
+      errorMessage.toLowerCase().includes("cannot reserve more than 1 account")
+    ) {
+      reservedAccounts = await fetchMonnifyReservedAccounts(accessToken, email);
+
+      if (reservedAccounts.length > 0) {
+        const account = reservedAccounts[0];
+        const savedAccount = await storeVirtualAccountOnUser(
+          req.user._id,
+          account
+        );
+
+        return res.status(200).json({
+          message: "Virtual account retrieved successfully",
+          data: savedAccount,
+        });
+      }
+    }
+
+    throw new AppError(errorMessage);
+  }
+
+  const accounts = data?.responseBody?.accounts;
+
+  if (!Array.isArray(accounts) || accounts.length === 0) {
+    throw new AppError("Monnify did not return any virtual account details.");
+  }
+
+  const savedAccount = await storeVirtualAccountOnUser(
+    req.user._id,
+    accounts[0]
+  );
+
+  res.status(200).json({
+    message: "Virtual account created successfully",
+    data: savedAccount,
+  });
+});
+
+module.exports.deleteVirtualAccount = catchAsync(async (req, res) => {
+  const { _id: customerRef } = req.user;
+
+  if (!customerRef) {
+    return res.status(400).json({
+      error: "Customer reference is required.",
+    });
+  }
+
+  // Note: Monnify doesn't support DELETE method for virtual accounts
+  // We'll remove it from our database but the account remains active in Monnify
+  // This is a limitation of Monnify's API
+
+  try {
+    // Remove virtual account from user database only
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found",
+      });
+    }
+
+    if (!user.virtualAccount) {
+      return res.status(400).json({
+        error: "No virtual account found to delete",
+      });
+    }
+
+    user.virtualAccount.isDeleted = true;
+    await user.save();
+
+    res.status(200).json({
+      message:
+        "Virtual account removed from your profile. Note: The account remains active in the banking system but is no longer linked to your profile.",
+    });
+  } catch (error) {
+    console.error("Database error during virtual account deletion:", error);
+    res.status(500).json({
+      error: "Failed to remove virtual account from profile",
+    });
+  }
+});
+
+module.exports.getVirtualAccount = catchAsync(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  if (
+    !user.virtualAccount ||
+    !user.virtualAccount.accountNumber ||
+    user.virtualAccount.isDeleted
+  ) {
+    return res.status(404).json({
+      error: "No active virtual account found",
     });
   }
 
   res.status(200).json({
-    message: "Virtual account created successfully",
-    data: data.responseBody,
+    message: "Virtual account retrieved successfully",
+    data: user.virtualAccount,
   });
 });
 
@@ -465,6 +646,8 @@ module.exports.webhook = catchAsync(async (req, res) => {
       .update(req.rawBody)
       .digest("hex");
 
+    // Signature verification logs removed
+
     if (hash !== signature) {
       return res.status(401).json({ error: "Invalid webhook signature" });
     }
@@ -472,15 +655,58 @@ module.exports.webhook = catchAsync(async (req, res) => {
     const event = req.body;
 
     if (event.event === "charge.success") {
-      const paymentData = event.data;
-      console.log("Payment Verified via Webhook:", paymentData.reference);
+      const { reference, amount, customer } = event.data;
+      console.log("Payment Verified via Webhook:", reference);
 
-      // TODO: Update database with payment status
-      res.status(200).json({ status: "success" });
+      try {
+        // Check for idempotency - prevent duplicate processing
+        const existingTransaction = await Transaction.findOne({ reference });
+        if (existingTransaction) {
+          console.log("Transaction already processed:", reference);
+          return res.status(200).json({ status: "already processed" });
+        }
+
+        // Find user by email
+        const user = await User.findOne({ email: customer.email });
+        if (!user) {
+          console.error("User not found for webhook:", customer.email);
+          return res.status(200).json({ status: "user not found" });
+        }
+
+        // Create transaction record
+        const transaction = await Transaction.create({
+          user: user._id,
+          amount: amount / 100, // Convert from kobo to naira
+          type: "deposit",
+          status: "completed",
+          reference,
+        });
+
+        // Update user balance
+        user.balance += amount / 100;
+        await user.save();
+
+        // Send notification
+        await Notifications.create({
+          user: user._id,
+          title: "Payment",
+          message: `Payment of ₦${amount / 100} received successfully`,
+          referenceType: "Payment",
+          referenceId: transaction._id,
+          type: "success",
+        });
+
+        console.log("Payment processed successfully:", reference);
+        res.status(200).json({ status: "success" });
+      } catch (processingError) {
+        console.error("Webhook processing error:", processingError);
+        res.status(500).json({ error: "Webhook processing failed" });
+      }
     } else {
-      res.status(400).json({ status: "ignored" });
+      res.status(200).json({ status: "ignored" });
     }
   } catch (error) {
+    console.error("Webhook processing error:", error);
     res.status(500).json({ error: "Webhook processing failed" });
   }
 });

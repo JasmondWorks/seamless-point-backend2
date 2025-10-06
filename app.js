@@ -46,9 +46,12 @@ app.use(
 app.use(express.static(`${__dirname}/public`));
 
 app.use((req, _, next) => {
-  req.rawBody = "";
+  const chunks = [];
   req.on("data", (chunk) => {
-    req.rawBody += chunk;
+    chunks.push(chunk);
+  });
+  req.on("end", () => {
+    req.rawBody = Buffer.concat(chunks);
   });
   next();
 });

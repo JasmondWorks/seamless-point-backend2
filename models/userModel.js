@@ -70,6 +70,30 @@ const userSchema = new mongoose.Schema(
       },
       bankName: { type: String },
     },
+    virtualAccount: {
+      isDeleted: {
+        type: Boolean,
+        default: false,
+      },
+      accountNumber: {
+        type: String,
+      },
+      accountName: {
+        type: String,
+      },
+      bankName: {
+        type: String,
+      },
+      bankCode: {
+        type: String,
+      },
+      customerCode: {
+        type: String,
+      },
+      createdAt: {
+        type: Date,
+      },
+    },
     profileImage: {
       type: String,
     },
