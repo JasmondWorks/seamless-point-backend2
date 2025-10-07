@@ -37,14 +37,14 @@ module.exports.updateMe = catchAsync(async (req, res) => {
       400
     );
 
-  const existingPhoneNumberUser = await User.findOne({
-    phoneNumber: req.body.phoneNumber,
-  });
+  // const existingPhoneNumberUser = await User.findOne({
+  //   phoneNumber: req.body.phoneNumber,
+  // });
 
-  if (existingPhoneNumberUser)
-    throw new AppError("A user with this phone number already exists");
+  // if (existingPhoneNumberUser)
+  //   throw new AppError("A user with this phone number already exists");
 
-  console.log("existing phone number", existingPhoneNumberUser);
+  // console.log("existing phone number", existingPhoneNumberUser);
 
   // 2) We dont want to update the email and name and other sensitive info
   const filteredBody = filterObj(
