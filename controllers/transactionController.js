@@ -193,82 +193,109 @@ async function getOrCreatePaystackCustomer({
   phone,
 }) {
   try {
-    // First, try to find existing customer by email
+    // --- normalize/validate inputs ---
+    const e = String(email ?? "").trim();
+    const fn = String(first_name ?? "").trim();
+    const ln = String(last_name ?? "").trim();
+    const ph = normalizePhone(phone);
+
+    if (!e || !fn || !ln) {
+      throw new Error("Missing required fields: email/first_name/last_name");
+    }
+
+    // --- try to find existing by email ---
     const listCustomersRes = await fetch(
-      `https://api.paystack.co/customer?email=${encodeURIComponent(email)}`,
+      `https://api.paystack.co/customer?email=${encodeURIComponent(e)}`,
       {
         method: "GET",
         headers: {
           Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          Accept: "application/json",
         },
       }
     );
-
     const listData = await listCustomersRes.json();
 
-    if (listCustomersRes.ok && listData.data && listData.data.length > 0) {
-      const existingCustomer = listData.data[0];
+    if (
+      listCustomersRes.ok &&
+      Array.isArray(listData?.data) &&
+      listData.data.length > 0
+    ) {
+      const existing = listData.data[0];
 
-      // Check if customer has phone number, if not, update it
-      if (!existingCustomer.phone && phone) {
+      // Patch any missing fields (names/phone) on the Paystack record
+      const patch = {};
+      if (!existing.first_name && fn) patch.first_name = fn;
+      if (!existing.last_name && ln) patch.last_name = ln;
+      if ((!existing.phone || existing.phone.trim() === "") && ph)
+        patch.phone = ph;
+
+      if (Object.keys(patch).length > 0) {
         const updateRes = await fetch(
-          `https://api.paystack.co/customer/${existingCustomer.id}`,
+          `https://api.paystack.co/customer/${existing.id}`,
           {
             method: "PUT",
             headers: {
               Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              phone: phone.startsWith("0") ? `+234${phone.slice(1)}` : phone,
-            }),
+            body: JSON.stringify(patch),
           }
         );
-
         const updateData = await updateRes.json();
-
         if (updateRes.ok) {
-          console.log("Customer phone number updated successfully");
-          return updateData.data;
+          return updateData.data; // includes customer_code
         } else {
           console.warn(
-            "Failed to update customer phone number:",
-            updateData.message
+            "Failed to update customer fields:",
+            updateData?.message
           );
-          // Continue with existing customer even if update fails
+          // fall through and return existing
         }
       }
 
-      return existingCustomer;
-    } else {
-      // Create new customer
-      const customerRes = await fetch("https://api.paystack.co/customer", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          first_name,
-          last_name,
-          phone: phone.startsWith("0") ? `+234${phone.slice(1)}` : phone,
-        }),
-      });
-
-      const customerData = await customerRes.json();
-
-      if (!customerRes.ok) {
-        throw new Error(
-          customerData.message || "Failed to create Paystack customer"
-        );
-      }
-
-      return customerData.data;
+      return existing; // already has customer_code
     }
+
+    // --- create new customer ---
+    const payload = {
+      email: e,
+      first_name: fn,
+      last_name: ln,
+      ...(ph ? { phone: ph } : {}),
+    };
+    console.log("Creating Paystack customer with payload:", payload);
+
+    const customerRes = await fetch("https://api.paystack.co/customer", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const customerData = await customerRes.json();
+    if (!customerRes.ok) {
+      // Surface Paystack’s exact validation message (e.g., "last_name is required...")
+      throw new Error(
+        customerData?.message || "Failed to create Paystack customer"
+      );
+    }
+    return customerData.data; // includes customer_code
   } catch (error) {
     throw new Error(`Customer operation failed: ${error.message}`);
   }
+}
+
+// Helper: normalize Nigerian numbers to E.164
+function normalizePhone(phone) {
+  if (!phone) return "";
+  const p = String(phone).trim();
+  if (p.startsWith("+")) return p; // already E.164
+  if (p.startsWith("0")) return `+234${p.slice(1)}`;
+  if (p.startsWith("234")) return `+${p}`;
+  return p; // leave as-is (best effort)
 }
 
 module.exports.getCustomer = catchAsync(async (req, res) => {
@@ -360,22 +387,52 @@ module.exports.getBankProviders = catchAsync(async (req, res) => {
   sendSuccessResponseData(res, "providers", data);
 });
 module.exports.createVirtualAccount = catchAsync(async (req, res) => {
-  const {
-    email,
-    firstName: first_name,
-    lastName: last_name,
-    phoneNumber: phone,
-  } = req.user;
+  const existingUser = await User.findById(req.user._id);
 
-  if (!email || !first_name) {
-    return res
-      .status(400)
-      .json({ error: "Email and first name are required." });
+  if (!existingUser) {
+    return res.status(404).json({ error: "User not found." });
+  }
+
+  const email =
+    existingUser.email ||
+    req.user.email ||
+    req.user?.user_email ||
+    req.user?.emailAddress;
+  const first_name =
+    existingUser.firstName ||
+    req.user.firstName ||
+    req.user.first_name ||
+    req.user?.user_firstname;
+  const last_name =
+    existingUser.lastName ||
+    req.user.lastName ||
+    req.user.last_name ||
+    req.user?.user_lastname;
+  const phone =
+    existingUser.phoneNumber ||
+    req.user.phoneNumber ||
+    req.user.phone_number ||
+    req.user.phone ||
+    req.user?.user_phone;
+
+  console.log("user", {
+    id: existingUser._id,
+    email,
+    first_name,
+    last_name,
+    phone,
+  });
+
+  const normalizedLastName = String(last_name ?? "").trim();
+
+  if (!email || !first_name || normalizedLastName.length === 0) {
+    return res.status(400).json({
+      error:
+        "Email, first name, and last name are required before creating a virtual account.",
+    });
   }
 
   console.log("phone", phone);
-
-  const existingUser = await User.findById(req.user._id);
 
   // Check for existing virtual account
   if (
@@ -384,42 +441,34 @@ module.exports.createVirtualAccount = catchAsync(async (req, res) => {
     existingUser.virtualAccount.accountNumber
   ) {
     return res.status(200).json(existingUser.virtualAccount);
-    // if (!existingUser.virtualAccount.isDeleted) {
-    //   // return res.status(200).json({
-    //   //   message: "Virtual account already exists",
-    //   //   data: existingUser.virtualAccount,
-    //   // });
-    //   return res.status(200).json(existingUser.virtualAccount)
-    // } else {
-    //   // Re-enable the deleted account
-    //   existingUser.virtualAccount.isDeleted = false;
-    //   await existingUser.save();
-    //   return res.status(200).json({
-    //     message: "Virtual account re-enabled successfully",
-    //     data: existingUser.virtualAccount,
-    //   });
-    // }
   }
 
   try {
     // Step 1: Get or create Paystack customer (avoid duplicates)
-    let customerCode = existingUser.paystackCustomerCode;
+    let customerCode = existingUser?.virtualAccount?.customerCode;
 
     if (!customerCode) {
       const customer = await getOrCreatePaystackCustomer({
         email,
         first_name,
-        last_name,
+        last_name: normalizedLastName,
         phone,
       });
+
+      console.log("*****");
+      console.log("customer", customer);
+      console.log("*****");
 
       customerCode = customer.customer_code;
 
       // Save customer code to user
-      existingUser.paystackCustomerCode = customerCode;
+      existingUser.set("virtualAccount.customerCode", customerCode);
       await existingUser.save();
     }
 
+    console.log("*****");
+    console.log("here");
+    console.log("*****");
     // Step 2: Create Dedicated Virtual Account for that customer
     const accountRes = await fetch(
       "https://api.paystack.co/dedicated_account",
@@ -645,8 +694,6 @@ module.exports.withdrawFunds = catchAsync(async (req, res, next) => {
 // Webhook for Paystack
 module.exports.webhook = catchAsync(async (req, res) => {
   console.log("webhook call body", req.body);
-  console.log("webhook call raw body", req.rawBody);
-  console.log("webhook call text", req.text);
 
   try {
     // validate event
