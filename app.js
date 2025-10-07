@@ -23,7 +23,29 @@ const webhookRoutes = require("./routes/webhookRoutes");
 const terminalRoutes = require("./routes/terminalRoutes");
 const v24uRoutes = require("./routes/v24uRoutes");
 
+const transactionController = require("./controllers/transactionController");
+
 const app = express();
+
+// Webhook
+app.post(
+  "/api/v1/transactions/webhook",
+  (req, res, next) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      req.rawBody = Buffer.concat(chunks);
+      try {
+        req.body = JSON.parse(req.rawBody.toString("utf8"));
+      } catch {
+        // If Paystack sends a non-JSON ping or malformed body, keep raw.
+        req.body = {};
+      }
+      next();
+    });
+  },
+  transactionController.webhook
+);
 
 app.use(cors());
 

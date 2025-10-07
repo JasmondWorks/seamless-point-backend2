@@ -10,6 +10,8 @@ const {
   getBanksList,
   getAccountDetails,
   withdrawFunds,
+  getBankProviders,
+  getCustomer,
 } = require("../controllers/transactionController");
 const authController = require("../controllers/authController");
 const router = express.Router();
@@ -38,11 +40,29 @@ router.post(
   authController.authorize("user"),
   getAccountDetails
 );
+router.get(
+  "/virtual-account",
+  authController.authenticate,
+  authController.authorize("user"),
+  getVirtualAccount
+);
 router.post(
-  "/monnify/virtual-account",
+  "/virtual-account",
   authController.authenticate,
   authController.authorize("user"),
   createVirtualAccount
+);
+router.get(
+  "/customer",
+  authController.authenticate,
+  authController.authorize("user"),
+  getCustomer
+);
+router.get(
+  "/bank-providers",
+  authController.authenticate,
+  authController.authorize("user"),
+  getBankProviders
 );
 router.get(
   "/monnify/virtual-account",
@@ -62,21 +82,21 @@ router.post(
   authController.authorize("user"),
   withdrawFunds
 );
-router.post(
-  "/webhook",
-  (req, res, next) => {
-    const chunks = [];
-    req.on("data", (chunk) => {
-      chunks.push(chunk);
-    });
-    req.on("end", () => {
-      req.rawBody = Buffer.concat(chunks);
-      req.body = JSON.parse(req.rawBody.toString());
-      next();
-    });
-  },
-  webhook
-);
+// router.post(
+//   "/webhook",
+//   (req, res, next) => {
+//     const chunks = [];
+//     req.on("data", (chunk) => {
+//       chunks.push(chunk);
+//     });
+//     req.on("end", () => {
+//       req.rawBody = Buffer.concat(chunks);
+//       req.body = JSON.parse(req.rawBody.toString());
+//       next();
+//     });
+//   },
+//   webhook
+// );
 router.post(
   "/create",
   authController.authenticate,
