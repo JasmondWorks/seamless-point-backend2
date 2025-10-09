@@ -350,6 +350,8 @@ module.exports.searchHsCode = catchAsync(async (req, res) => {
 module.exports.getCategories = catchAsync(async (_, res) => {
   const allCategories = await fetchAllCategories();
 
+  console.log("all categories", allCategories);
+
   const categories = [];
 
   allCategories.forEach((item) => {

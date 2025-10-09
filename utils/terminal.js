@@ -1,7 +1,7 @@
 const AppError = require("./appError");
 
 const TERMINAL_API_KEY = process.env.TERMINAL_API_KEY || "YOUR_SECRET_KEY";
-const TERMINAL_BASE_URL = "https://sandbox.terminal.africa/v1";
+const TERMINAL_BASE_URL = process.env.TERMINAL_BASE_URL;
 
 module.exports.generateAddress = async function (addressDetails) {
   try {
@@ -74,15 +74,19 @@ module.exports.createParcel = async function (parcelDetails) {
 };
 
 module.exports.fetchAllCategories = async function fetchAllHSCodes() {
+  console.log(TERMINAL_API_KEY);
   const initialRes = await fetch(`${TERMINAL_BASE_URL}/hs-codes/simplified`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${TERMINAL_API_KEY}`,
     },
   });
+
   const initialData = await initialRes.json();
 
-  const totalItems = initialData.data.pagination.total;
+  console.log("initial hscode categories data", initialData);
+
+  const totalItems = initialData?.data?.pagination?.total;
 
   const url = `${TERMINAL_BASE_URL}/hs-codes/simplified?perPage=${totalItems}`;
   const response = await fetch(url, {
@@ -93,13 +97,14 @@ module.exports.fetchAllCategories = async function fetchAllHSCodes() {
   });
   const data = await response.json();
 
-  const formattedData = data.data.hs_codes.map((item) => ({
-    hsCode: item.hs_code,
-    hsCodeLabel: item.sub_category,
-    category: item.chapter_name,
-    subCategory: item.category,
-    id: item._id,
-  }));
+  const formattedData =
+    data?.data?.hs_codes.map((item) => ({
+      hsCode: item.hs_code,
+      hsCodeLabel: item.sub_category,
+      category: item.chapter_name,
+      subCategory: item.category,
+      id: item._id,
+    })) || [];
 
   return formattedData;
 };
