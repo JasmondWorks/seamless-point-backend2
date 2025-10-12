@@ -2,7 +2,6 @@ const express = require("express");
 const {
   initializeTransaction,
   verifyTransaction,
-  webhook,
   createTransaction,
   createVirtualAccount,
   deleteVirtualAccount,
@@ -12,9 +11,27 @@ const {
   withdrawFunds,
   getBankProviders,
   getCustomer,
+  getAllTransactions,
+  aliasLatestTransactions,
 } = require("../controllers/transactionController");
 const authController = require("../controllers/authController");
 const router = express.Router();
+
+router.get(
+  "/",
+  authController.authenticate,
+  authController.authorize("user", "admin"),
+  getAllTransactions
+);
+
+router
+  .route("/latest")
+  .get(
+    authController.authenticate,
+    authController.authorize("admin", "user"),
+    aliasLatestTransactions,
+    getAllTransactions
+  );
 
 router.post(
   "/paystack/initialize",

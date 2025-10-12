@@ -2,28 +2,47 @@ class APIFEATURES {
   constructor(query, queryString) {
     this.query = query;
     this.queryString = queryString;
+    this.baseFilter = {};
+    this.appliedFilter = null;
+    this.pagination = { page: 1, limit: 100, skip: 0 };
   }
 
-  filter(filterObj) {
-    const queryObj = { ...this.queryString, ...filterObj };
-    console.log(queryObj);
+  filter(filterObj = {}) {
+    this.baseFilter = { ...filterObj };
+    const filter = this._buildFilter();
+    this.appliedFilter = filter;
+    this.query = this.query.find(filter);
+    return this;
+  }
+
+  _buildFilter(extraFilter = {}) {
+    const queryObj = {
+      ...this.queryString,
+      ...(this.baseFilter || {}),
+      ...extraFilter,
+    };
     const excludedFields = ["page", "sort", "limit", "fields"];
 
     excludedFields.forEach((el) => delete queryObj[el]);
 
-    // 2) Advanced filtering
     let queryStr = JSON.stringify(queryObj);
-
-    // `{price: $gt: 4}`;
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
 
-    this.query = this.query.find(JSON.parse(queryStr));
-    return this;
+    return JSON.parse(queryStr);
   }
 
-  // 3) Field Limiting
+  getFilter(additionalFilter = {}) {
+    if (
+      Object.keys(additionalFilter).length === 0 &&
+      this.appliedFilter !== null
+    ) {
+      return this.appliedFilter;
+    }
+
+    return this._buildFilter(additionalFilter);
+  }
+
   limitFields() {
-    console.log(this.queryString);
     if (this.queryString.fields) {
       const fields = this.queryString.fields.split(",").join(" ");
       this.query = this.query.select(fields);
@@ -37,19 +56,24 @@ class APIFEATURES {
   sort() {
     if (this.queryString.sort) {
       const sortBy = this.queryString.sort.split(",").join(" ");
-      ["price rat "];
       this.query = this.query.sort(sortBy);
     } else {
-      this.query = this.query.sort({ created_at: -1 });
+      this.query = this.query.sort({ createdAt: -1 });
     }
     return this;
   }
 
   paginate() {
-    const page = this.queryString.page * 1 || 1;
-    const limit = this.queryString.limit * 1 || 100;
+    const parsedPage = Number.parseInt(this.queryString.page, 10);
+    const parsedLimit = Number.parseInt(this.queryString.limit, 10);
+
+    const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+    const limit =
+      Number.isNaN(parsedLimit) || parsedLimit < 1 ? 100 : parsedLimit;
+
     const skip = (page - 1) * limit;
     this.query = this.query.skip(skip).limit(limit);
+    this.pagination = { page, limit, skip };
 
     return this;
   }

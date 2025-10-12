@@ -4,6 +4,28 @@ const User = require("../models/userModel");
 const { catchAsync, sendSuccessResponseData } = require("../utils/helpers");
 const AppError = require("../utils/appError");
 const Notifications = require("../models/notificationModel");
+const APIFEATURES = require("../utils/apiFeatures");
+
+module.exports.getAllTransactions = catchAsync(async (req, res) => {
+  const apiFeatures = new APIFEATURES(Transaction, req.query);
+  apiFeatures.filter();
+
+  const totalCount = await Transaction.countDocuments(
+    apiFeatures.query.getFilter()
+  );
+
+  apiFeatures.sort().paginate().limitFields();
+
+  const transactions = await apiFeatures.query;
+
+  sendSuccessResponseData(res, "transactions", transactions, totalCount);
+});
+
+module.exports.aliasLatestTransactions = (req, _res, next) => {
+  req.query.limit = "5";
+  req.query.sort = "-createdAt";
+  next();
+};
 
 module.exports.createTransaction = catchAsync(async (req, res, next) => {
   const { amount, type, reference } = req.body;

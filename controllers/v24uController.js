@@ -224,12 +224,12 @@ module.exports.buyElectricity = catchAsync(async (req, res) => {
     await Transaction.create({
       user: userId,
       amount,
-      type: "data_bundle",
+      type: "electricity",
       status: payload.status === "success" ? "completed" : "pending",
       reference: payload.data ? payload.data.transactionId : undefined,
     });
     await Notifications.create({
-      title: "Data bundle",
+      title: "Electricity",
       message: `Successfully purchased electricity for ₦${amount}`,
       user: req.user,
       referenceType: "Other",
@@ -286,12 +286,12 @@ module.exports.buyTvPlan = catchAsync(async (req, res) => {
     await Transaction.create({
       user: userId,
       amount,
-      type: "data_bundle",
+      type: "tv_plan",
       status: payload.status === "success" ? "completed" : "pending",
       reference: payload.data ? payload.data.transactionId : undefined,
     });
     await Notifications.create({
-      title: "Data bundle",
+      title: "TV plan",
       message: `Successfully purchased TV plan for ₦${amount}`,
       user: req.user,
       referenceType: "Other",
@@ -442,69 +442,6 @@ module.exports.topUpAirtime = catchAsync(async (req, res) => {
       msg: payload.msg ?? "Request processed",
       data: payload.data,
       balance: newBalance,
-    });
-  } catch (error) {
-    throw toAppError(error);
-  }
-});
-
-// Middleware
-
-module.exports.payTvBill = catchAsync(async (req, res) => {
-  const { provider, cardNumber, planCode, amount, phone } = req.body;
-
-  if (!provider || !cardNumber || !planCode || !amount || !phone)
-    throw new AppError(
-      "'provider', 'cardNumber', 'planCode', 'amount' and 'phone' are required in the request body",
-      400
-    );
-
-  const verifyUrl = normalizeBaseUrl("tv/card/verify");
-  const subscribeUrl = normalizeBaseUrl("tv/subscribe");
-
-  const userId = req.user && req.user._id;
-
-  try {
-    await axios.post(
-      url,
-      { provider, cardNumber },
-      {
-        headers: buildAuthHeaders(),
-        timeout: Number(process.env.V24U_TIMEOUT_MS) || 15000,
-      }
-    );
-    const response = await axios.post(
-      url,
-      { provider, cardNumber, planCode, amount, phone },
-      {
-        params,
-        headers: buildAuthHeaders(),
-        timeout: Number(process.env.V24U_TIMEOUT_MS) || 15000,
-      }
-    );
-
-    const payload = response.data || {};
-
-    await Transaction.create({
-      user: userId,
-      amount,
-      type: "tv_plan",
-      status: payload.status === "success" ? "completed" : "pending",
-      reference: payload.data ? payload.data.transactionId : undefined,
-    });
-    await Notifications.create({
-      title: "TV plan",
-      message: `Successfully purchased ${bundleCode} TV plan`,
-      user: req.user,
-      referenceType: "Other",
-      referenceId: payload.data ? payload.data.transactionId : undefined,
-    });
-    await User.findByIdAndUpdate(userId, { $inc: { balance: -amount } });
-
-    return res.status(200).json({
-      status: payload.status ?? "success",
-      msg: payload.msg ?? "Request processed",
-      data: payload.data,
     });
   } catch (error) {
     throw toAppError(error);
